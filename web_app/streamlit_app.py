@@ -80,14 +80,44 @@ if page == "Forecast Dashboard":
     preds = model.predict(X)
     latest_pred = preds[-1]
 
+    # -------------------- AQI ALERT LOGIC --------------------
+    def get_aqi_alert(aqi_value):
+        if aqi_value <= 50:
+            return "✅ **Good (Air is clean and healthy)**", "success"
+        elif aqi_value <= 100:
+            return "🟡 **Moderate (Acceptable, but sensitive people should take care)**", "info"
+        elif aqi_value <= 150:
+            return "🟠 **Unhealthy for Sensitive Groups (Limit prolonged outdoor exposure)**", "warning"
+        elif aqi_value <= 200:
+            return "🔴 **Unhealthy (Everyone may begin to experience health effects)**", "error"
+        elif aqi_value <= 300:
+            return "🟣 **Very Unhealthy (Health alert for all residents)**", "error"
+        else:
+            return "⚫ **Hazardous (Emergency conditions, avoid going outside)**", "error"
+
+    alert_msg, alert_type = get_aqi_alert(latest_pred)
+    # ----------------------------------------------------------
+
     st.title("🌫️ Karachi Air Quality Forecast")
     st.metric(label=f"Predicted AQI for {forecast_date}", value=f"{latest_pred:.1f}")
 
+    # Display AQI Alert Message with color-coded box
+    if alert_type == "success":
+        st.success(alert_msg)
+    elif alert_type == "info":
+        st.info(alert_msg)
+    elif alert_type == "warning":
+        st.warning(alert_msg)
+    else:
+        st.error(alert_msg)
+
+    # AQI Trend Line
     st.line_chart(pd.DataFrame({
         "timestamp": df["timestamp"],
         "Predicted AQI": preds
     }).set_index("timestamp"))
 
+    # SHAP and LIME sections (unchanged)
     st.subheader("🔍 Feature Importance (SHAP)")
     try:
         explainer = shap.TreeExplainer(model)
@@ -109,6 +139,7 @@ if page == "Forecast Dashboard":
         st.warning(f"Could not generate LIME explanation: {e}")
 
     st.caption("Developed with ❤️ by Syeda Faryal Fatima | 10Pearls | Hopsworks Integrated AQI Predictor")
+
 
 # -------------------------------------------------------------------
 # EDA DASHBOARD
